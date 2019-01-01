@@ -1,6 +1,6 @@
 /*
  * (C) 2003-2006 Gabest
- * (C) 2006-2017 see Authors.txt
+ * (C) 2006-2018 see Authors.txt
  *
  * This file is part of MPC-HC.
  *
@@ -21,12 +21,11 @@
 
 #include "stdafx.h"
 #include "RenderersSettings.h"
+#include <VersionHelpers.h>
 #include "../../../mpc-hc/AppSettings.h"
 #include "../../../mpc-hc/mplayerc.h"
 #include <mpc-hc_config.h>
 #include <d3d9.h>
-#include <d3d10.h>
-#include <dxgi.h>
 #include <d3dx9.h>
 
 void CRenderersSettings::UpdateData(bool fSave)
@@ -72,14 +71,14 @@ void CRenderersSettings::CAdvRendererSettings::SetOptimal()
     iVMR9VSyncOffset                  = 0;
     bVMR9VSyncAccurate                = true;
     bVMR9FullscreenGUISupport         = false;
-    bVMR9VSync                        = true;
+    bVMR9VSync                        = !IsWindows7OrGreater();
     bVMR9FullFloatingPointProcessing  = false;
     bVMR9HalfFloatingPointProcessing  = false;
     bVMR9ColorManagementEnable        = false;
     iVMR9ColorManagementInput         = VIDEO_SYSTEM_UNKNOWN;
     iVMR9ColorManagementAmbientLight  = AMBIENT_LIGHT_BRIGHT;
     iVMR9ColorManagementIntent        = COLOR_RENDERING_INTENT_PERCEPTUAL;
-    bVMRDisableDesktopComposition     = true;
+    bVMRDisableDesktopComposition     = false;
     bVMRFlushGPUBeforeVSync           = true;
     bVMRFlushGPUAfterPresent          = true;
     bVMRFlushGPUWait                  = false;

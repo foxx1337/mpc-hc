@@ -1,6 +1,6 @@
 /*
  * (C) 2003-2006 Gabest
- * (C) 2006-2017 see Authors.txt
+ * (C) 2006-2018 see Authors.txt
  *
  * This file is part of MPC-HC.
  *
@@ -213,6 +213,10 @@ CAppSettings::CAppSettings()
     , iLAVGPUDevice(DWORD_MAX)
     , nCmdVolume(0)
     , eSubtitleRenderer(SubtitleRenderer::INTERNAL)
+    , bUseYDL(true)
+    , iYDLMaxHeight(1440)
+    , bYDLAudioOnly(false)
+    , sYDLCommandLine(_T(""))
 {
     // Internal source filter
 #if INTERNAL_SOURCEFILTER_CDDA
@@ -351,6 +355,15 @@ CAppSettings::CAppSettings()
 #if INTERNAL_DECODER_OPUS
     TraFiltersKeys[TRA_OPUS] = FilterKey(_T("TRA_OPUS"), true);
 #endif
+#if INTERNAL_DECODER_WMA
+    TraFiltersKeys[TRA_WMA] = FilterKey(_T("TRA_WMA"), false);
+#endif
+#if INTERNAL_DECODER_WMAPRO
+    TraFiltersKeys[TRA_WMAPRO] = FilterKey(_T("TRA_WMAPRO"), false);
+#endif
+#if INTERNAL_DECODER_WMALL
+    TraFiltersKeys[TRA_WMALL] = FilterKey(_T("TRA_WMALL"), false);
+#endif
 #if INTERNAL_DECODER_PCM
     TraFiltersKeys[TRA_PCM] = FilterKey(_T("TRA_PCM"), true);
 #endif
@@ -359,6 +372,9 @@ CAppSettings::CAppSettings()
 #endif
 #if INTERNAL_DECODER_HEVC
     TraFiltersKeys[TRA_HEVC] = FilterKey(_T("TRA_HEVC"), true);
+#endif
+#if INTERNAL_DECODER_AV1
+    TraFiltersKeys[TRA_AV1] = FilterKey(_T("TRA_AV1"), true);
 #endif
 #if INTERNAL_DECODER_VC1
     TraFiltersKeys[TRA_VC1] = FilterKey(_T("TRA_VC1"), true);
@@ -1067,6 +1083,11 @@ void CAppSettings::SaveSettings()
 
     pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_DEFAULTTOOLBARSIZE, nDefaultToolbarSize);
 
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_SAVEIMAGE_POSITION, bSaveImagePosition);
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_SAVEIMAGE_CURRENTTIME, bSaveImageCurrentTime);
+
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_ALLOW_INACCURATE_FASTSEEK, bAllowInaccurateFastseek);
+
     {
         CComHeapPtr<WCHAR> pDeviceId;
         BOOL bExclusive;
@@ -1087,7 +1108,15 @@ void CAppSettings::SaveSettings()
         sanear->GetCrossfeedSettings(&uCutoffFrequency, &uCrossfeedLevel);
         pApp->WriteProfileInt(IDS_R_SANEAR, IDS_RS_SANEAR_CROSSFEED_CUTOFF_FREQ, uCutoffFrequency);
         pApp->WriteProfileInt(IDS_R_SANEAR, IDS_RS_SANEAR_CROSSFEED_LEVEL, uCrossfeedLevel);
+
+        BOOL bIgnoreSystemChannelMixer = sanear->GetIgnoreSystemChannelMixer();
+        pApp->WriteProfileInt(IDS_R_SANEAR, IDS_RS_SANEAR_IGNORE_SYSTEM_MIXER, bIgnoreSystemChannelMixer);
     }
+
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_USE_YDL, bUseYDL);
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_YDL_MAX_HEIGHT, iYDLMaxHeight);
+    pApp->WriteProfileInt(IDS_R_SETTINGS, IDS_RS_YDL_AUDIO_ONLY, bYDLAudioOnly);
+    pApp->WriteProfileString(IDS_R_SETTINGS, IDS_RS_YDL_COMMAND_LINE, sYDLCommandLine);
 
     pApp->FlushProfile();
 }
@@ -1320,9 +1349,11 @@ void CAppSettings::LoadSettings()
             language = 0;
         }
     }
+#if USE_DRDUMP_CRASH_REPORTER
     if (language && CrashReporter::IsEnabled()) {
         CrashReporter::Enable(Translations::GetLanguageResourceByLocaleID(language).dllPath);
     }
+#endif
 
     CreateCommands();
 
@@ -1478,7 +1509,7 @@ void CAppSettings::LoadSettings()
         CString temp = pApp->GetProfileString(IDS_R_SETTINGS, IDS_RS_SPSTYLE);
         subtitlesDefStyle <<= temp;
         if (temp.IsEmpty()) { // Position the text subtitles relative to the video frame by default
-            subtitlesDefStyle.relativeTo = STSStyle::VIDEO;
+            subtitlesDefStyle.relativeTo = STSStyle::AUTO;
         }
     }
     fOverridePlacement = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SPOVERRIDEPLACEMENT, FALSE);
@@ -1808,6 +1839,11 @@ void CAppSettings::LoadSettings()
 
     nDefaultToolbarSize = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_DEFAULTTOOLBARSIZE, 24);
 
+    bSaveImagePosition = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SAVEIMAGE_POSITION, TRUE);
+    bSaveImageCurrentTime = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_SAVEIMAGE_CURRENTTIME, FALSE);
+
+    bAllowInaccurateFastseek = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_ALLOW_INACCURATE_FASTSEEK, TRUE);
+
     if (fLaunchfullscreen) {
         nCLSwitches |= CLSW_FULLSCREEN;
     }
@@ -1825,6 +1861,13 @@ void CAppSettings::LoadSettings()
                                                      SaneAudioRenderer::ISettings::CROSSFEED_CUTOFF_FREQ_CMOY),
                                  pApp->GetProfileInt(IDS_R_SANEAR, IDS_RS_SANEAR_CROSSFEED_LEVEL,
                                                      SaneAudioRenderer::ISettings::CROSSFEED_LEVEL_CMOY));
+
+    sanear->SetIgnoreSystemChannelMixer(pApp->GetProfileInt(IDS_R_SANEAR, IDS_RS_SANEAR_IGNORE_SYSTEM_MIXER, TRUE));
+
+    bUseYDL       = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_USE_YDL, TRUE);
+    iYDLMaxHeight = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_YDL_MAX_HEIGHT, 1440);
+    bYDLAudioOnly = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_YDL_AUDIO_ONLY, FALSE);
+    sYDLCommandLine = pApp->GetProfileString(IDS_R_SETTINGS, IDS_RS_YDL_COMMAND_LINE, _T(""));
 
     bInitialized = true;
 }
@@ -1851,7 +1894,7 @@ void CAppSettings::UpdateRenderersData(bool fSave)
         pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRFullscreenGUISupport"), ars.bVMR9FullscreenGUISupport);
         pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRVSync"), ars.bVMR9VSync);
         pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRDisableDesktopComposition"), ars.bVMRDisableDesktopComposition);
-        pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRFullFloatingPointProcessing"), ars.bVMR9FullFloatingPointProcessing);
+        pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRFullFloatingPointProcessing2"), ars.bVMR9FullFloatingPointProcessing);
         pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRHalfFloatingPointProcessing"), ars.bVMR9HalfFloatingPointProcessing);
 
         pApp->WriteProfileInt(IDS_R_SETTINGS, _T("VMRColorManagementEnable"), ars.bVMR9ColorManagementEnable);
@@ -1907,7 +1950,7 @@ void CAppSettings::UpdateRenderersData(bool fSave)
         ars.bEVREnableFrameTimeCorrection = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("EVREnableFrameTimeCorrection"), DefaultSettings.bEVREnableFrameTimeCorrection);
         ars.bVMR9VSync = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRVSync"), DefaultSettings.bVMR9VSync);
         ars.bVMRDisableDesktopComposition = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRDisableDesktopComposition"), DefaultSettings.bVMRDisableDesktopComposition);
-        ars.bVMR9FullFloatingPointProcessing = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRFullFloatingPointProcessing"), DefaultSettings.bVMR9FullFloatingPointProcessing);
+        ars.bVMR9FullFloatingPointProcessing = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRFullFloatingPointProcessing2"), DefaultSettings.bVMR9FullFloatingPointProcessing);
         ars.bVMR9HalfFloatingPointProcessing = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRHalfFloatingPointProcessing"), DefaultSettings.bVMR9HalfFloatingPointProcessing);
 
         ars.bVMR9ColorManagementEnable = !!pApp->GetProfileInt(IDS_R_SETTINGS, _T("VMRColorManagementEnable"), DefaultSettings.bVMR9ColorManagementEnable);
@@ -2190,7 +2233,9 @@ void CAppSettings::ParseCommandLine(CAtlList<CString>& cmdln)
             } else if (sw == _T("debug")) {
                 fShowDebugInfo = true;
             } else if (sw == _T("nocrashreporter")) {
+#if USE_DRDUMP_CRASH_REPORTER
                 CrashReporter::Disable();
+#endif
                 MPCExceptionHandler::Enable();
             } else if (sw == _T("audiorenderer") && pos) {
                 SetAudioRenderer(_ttoi(cmdln.GetNext(pos)));
@@ -2206,6 +2251,12 @@ void CAppSettings::ParseCommandLine(CAtlList<CString>& cmdln)
                 nCLSwitches |= CLSW_PLAYNEXT;
             } else if (sw == _T("hwgpu") && pos) {
                 iLAVGPUDevice = _tcstol(cmdln.GetNext(pos), nullptr, 10);
+            } else if (sw == _T("configlavsplitter")) {
+                nCLSwitches |= CLSW_CONFIGLAVSPLITTER;
+            } else if (sw == _T("configlavaudio")) {
+                nCLSwitches |= CLSW_CONFIGLAVAUDIO;
+            } else if (sw == _T("configlavvideo")) {
+                nCLSwitches |= CLSW_CONFIGLAVVIDEO;
             } else {
                 nCLSwitches |= CLSW_HELP | CLSW_UNRECOGNIZEDSWITCH;
             }

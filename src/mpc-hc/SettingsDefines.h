@@ -1,5 +1,5 @@
 /*
- * (C) 2009-2016 see Authors.txt
+ * (C) 2009-2018 see Authors.txt
  *
  * This file is part of MPC-HC.
  *
@@ -78,6 +78,9 @@
 //#define IDS_RS_MONITOR_AUTOREFRESHRATE      _T("MonitorAutoRefreshRate")
 #define IDS_RS_SPEEDSTEP                    _T("SpeedStep")
 #define IDS_RS_DEFAULTTOOLBARSIZE           _T("DefaultToolbarSize")
+#define IDS_RS_SAVEIMAGE_POSITION           _T("SaveImagePosition")
+#define IDS_RS_SAVEIMAGE_CURRENTTIME        _T("SaveImageCurrentTime")
+#define IDS_RS_ALLOW_INACCURATE_FASTSEEK    _T("AllowInaccurateFastseek")
 
 // Audio
 #define IDS_RS_VOLUME                       _T("Volume")
@@ -323,3 +326,10 @@
 #define IDS_RS_SANEAR_CROSSFEED_ENABLED     _T("CrossfeedEnabled")
 #define IDS_RS_SANEAR_CROSSFEED_CUTOFF_FREQ _T("CrossfeedCutoffFrequency")
 #define IDS_RS_SANEAR_CROSSFEED_LEVEL       _T("CrossfeedLevel")
+
+#define IDS_RS_SANEAR_IGNORE_SYSTEM_MIXER   _T("IgnoreSystemChannelMixer")
+
+#define IDS_RS_USE_YDL                      _T("UseYDL")
+#define IDS_RS_YDL_MAX_HEIGHT               _T("YDLMaxHeight")
+#define IDS_RS_YDL_AUDIO_ONLY               _T("YDLAudioOnly")
+#define IDS_RS_YDL_COMMAND_LINE             _T("YDLCommandLine")

@@ -95,9 +95,10 @@ public:
 class OpenFileData : public OpenMediaData
 {
 public:
-    OpenFileData() : rtStart(0) {}
+    OpenFileData() : rtStart(0), bAddToRecent(true) {}
     CAtlList<CString> fns;
     REFERENCE_TIME rtStart;
+    bool bAddToRecent;
 };
 
 class OpenDVDData : public OpenMediaData
@@ -355,6 +356,7 @@ private:
 
     bool GetDIB(BYTE** ppData, long& size, bool fSilent = false);
     void SaveDIB(LPCTSTR fn, BYTE* pData, long size);
+    CString MakeSnapshotFileName(BOOL thumbnails);
     BOOL IsRendererCompatibleWithSaveImage();
     void SaveImage(LPCTSTR fn);
     void SaveThumbnails(LPCTSTR fn);
@@ -387,11 +389,19 @@ public:
     void StartWebServer(int nPort);
     void StopWebServer();
 
-    int GetPlaybackMode() const { return m_iPlaybackMode; }
-    bool IsPlaybackCaptureMode() const { return GetPlaybackMode() == PM_ANALOG_CAPTURE || GetPlaybackMode() == PM_DIGITAL_CAPTURE; }
+    int GetPlaybackMode() const {
+        return m_iPlaybackMode;
+    }
+    bool IsPlaybackCaptureMode() const {
+        return GetPlaybackMode() == PM_ANALOG_CAPTURE || GetPlaybackMode() == PM_DIGITAL_CAPTURE;
+    }
     void SetPlaybackMode(int iNewStatus);
-    bool IsMuted() { return m_wndToolBar.GetVolume() == -10000; }
-    int GetVolume() { return m_wndToolBar.m_volctrl.GetPos(); }
+    bool IsMuted() {
+        return m_wndToolBar.GetVolume() == -10000;
+    }
+    int GetVolume() {
+        return m_wndToolBar.m_volctrl.GetPos();
+    }
 
 public:
     CMainFrame();
@@ -516,8 +526,8 @@ public:
     OAFilterState GetMediaState() const;
     REFERENCE_TIME GetPos() const;
     REFERENCE_TIME GetDur() const;
-    bool GetNeighbouringKeyFrames(REFERENCE_TIME rtTarget, std::pair<REFERENCE_TIME, REFERENCE_TIME>& keyframes) const;
-    REFERENCE_TIME GetClosestKeyFrame(REFERENCE_TIME rtTarget) const;
+    bool GetKeyFrame(REFERENCE_TIME rtTarget, REFERENCE_TIME rtMin, REFERENCE_TIME rtMax, bool nearest, REFERENCE_TIME& keyframetime) const;
+    REFERENCE_TIME GetClosestKeyFrame(REFERENCE_TIME rtTarget, REFERENCE_TIME rtMaxForwardDiff, REFERENCE_TIME rtMaxBackwardDiff) const;
     void SeekTo(REFERENCE_TIME rt, bool bShowOSD = true);
     void SetPlayingRate(double rate);
 
@@ -1094,4 +1104,9 @@ public:
     bool OpenBD(CString Path);
 
     bool GetDecoderType(CString& type) const;
+
+private:
+    bool CanSendToYoutubeDL(const CString url);
+    bool ProcessYoutubeDLURL(CString url, bool append);
+    bool DownloadWithYoutubeDL(CString url, CString filename);
 };

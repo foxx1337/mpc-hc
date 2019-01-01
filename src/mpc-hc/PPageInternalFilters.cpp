@@ -75,7 +75,7 @@ BOOL CPPageInternalFiltersListBox::OnToolTipNotify(UINT id, NMHDR* pNMHDR, LRESU
         return FALSE;
     }
 
-    ::SendMessage(pNMHDR->hwndFrom, TTM_SETMAXTIPWIDTH, 0, 1000);
+    ::SendMessage(pNMHDR->hwndFrom, TTM_SETMAXTIPWIDTH, 0, 300);
 
     static CString strTipText; // static string
     strTipText.LoadString(f->nHintID);
@@ -507,6 +507,21 @@ void CPPageInternalFilters::InitFiltersList()
         m_filters.Add(filter_t(_T("Opus"), AUDIO_DECODER, TRA_OPUS, IDS_INTERNAL_LAVF));
     }
 #endif
+#if INTERNAL_DECODER_WMA
+    if (bLAVAudioIsAvailable) {
+        m_filters.Add(filter_t(_T("WMA 1/2"), AUDIO_DECODER, TRA_WMA, IDS_INTERNAL_LAVF));
+    }
+#endif
+#if INTERNAL_DECODER_WMAPRO
+    if (bLAVAudioIsAvailable) {
+        m_filters.Add(filter_t(_T("WMA Pro"), AUDIO_DECODER, TRA_WMAPRO, IDS_INTERNAL_LAVF));
+    }
+#endif
+#if INTERNAL_DECODER_WMALL
+    if (bLAVAudioIsAvailable) {
+        m_filters.Add(filter_t(_T("WMA Lossless"), AUDIO_DECODER, TRA_WMALL, IDS_INTERNAL_LAVF));
+    }
+#endif
 #if INTERNAL_DECODER_REALAUDIO
     if (bLAVAudioIsAvailable) {
         m_filters.Add(filter_t(_T("RealAudio"), AUDIO_DECODER, TRA_RA, IDS_INTERNAL_LAVF));
@@ -544,7 +559,12 @@ void CPPageInternalFilters::InitFiltersList()
 #endif
 #if INTERNAL_DECODER_HEVC
     if (bLAVVideoIsAvailable) {
-        m_filters.Add(filter_t(_T("HEVC"), VIDEO_DECODER, TRA_HEVC, IDS_INTERNAL_LAVF));
+        m_filters.Add(filter_t(_T("H265/HEVC"), VIDEO_DECODER, TRA_HEVC, IDS_INTERNAL_LAVF));
+    }
+#endif
+#if INTERNAL_DECODER_AV1
+    if (bLAVVideoIsAvailable) {
+        m_filters.Add(filter_t(_T("AV1"), VIDEO_DECODER, TRA_AV1, IDS_INTERNAL_LAVF));
     }
 #endif
 #if INTERNAL_DECODER_VC1

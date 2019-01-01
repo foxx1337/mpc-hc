@@ -1,6 +1,6 @@
 /*
  * (C) 2003-2006 Gabest
- * (C) 2006-2017 see Authors.txt
+ * (C) 2006-2018 see Authors.txt
  *
  * This file is part of MPC-HC.
  *
@@ -89,9 +89,12 @@ enum : UINT64 {
     CLSW_PRESET1 = CLSW_RESET << 1,
     CLSW_PRESET2 = CLSW_PRESET1 << 1,
     CLSW_PRESET3 = CLSW_PRESET2 << 1,
-    CLSW_MUTE = CLSW_PRESET3 << 1,
+    CLSW_CONFIGLAVSPLITTER = CLSW_PRESET3 << 1,
+    CLSW_CONFIGLAVAUDIO = CLSW_CONFIGLAVSPLITTER << 1,
+    CLSW_CONFIGLAVVIDEO = CLSW_CONFIGLAVAUDIO << 1,
+    CLSW_MUTE = CLSW_CONFIGLAVVIDEO << 1,
     CLSW_VOLUME = CLSW_MUTE << 1,
-    CLSW_UNRECOGNIZEDSWITCH = CLSW_VOLUME << 1 // 40
+    CLSW_UNRECOGNIZEDSWITCH = CLSW_VOLUME << 1 // 46
 };
 
 enum MpcCaptionState {
@@ -275,7 +278,9 @@ struct wmcmd_base : public ACCEL {
     };
 
     wmcmd_base()
-        : ACCEL( { 0, 0, 0 })
+        : ACCEL( {
+        0, 0, 0
+    })
     , mouse(NONE)
     , mouseFS(NONE)
     , dwname(0)
@@ -316,7 +321,9 @@ public:
         return cmd > 0 && cmd == wc.cmd;
     }
 
-    CString GetName() const { return ResStr(dwname); }
+    CString GetName() const {
+        return ResStr(dwname);
+    }
 
     void Restore() {
         ASSERT(default_cmd);
@@ -364,7 +371,9 @@ public:
     void SetHWND(HWND hWnd);
     void Connect(CString addr);
     void DisConnect();
-    int GetStatus() const { return m_nStatus; }
+    int GetStatus() const {
+        return m_nStatus;
+    }
 };
 
 class CWinLircClient : public CRemoteCtrlClient
@@ -416,7 +425,9 @@ public:
     DVD_HMSF_TIMECODE   DVDPosition;
 
     CSize sizeFixedWindow;
-    bool HasFixedWindowSize() const { return sizeFixedWindow.cx > 0 || sizeFixedWindow.cy > 0; }
+    bool HasFixedWindowSize() const {
+        return sizeFixedWindow.cx > 0 || sizeFixedWindow.cy > 0;
+    }
     //int           iFixedWidth, iFixedHeight;
     int             iMonitor;
 
@@ -511,6 +522,9 @@ public:
     UINT            nVolumeStep;
     UINT            nSpeedStep;
     int             nDefaultToolbarSize;
+    bool            bSaveImagePosition;
+    bool            bSaveImageCurrentTime;
+    bool            bAllowInaccurateFastseek;
 
     enum class AfterPlayback {
         DO_NOTHING,
@@ -722,7 +736,9 @@ public:
     };
 
     SubtitleRenderer GetSubtitleRenderer() const;
-    void  SetSubtitleRenderer(SubtitleRenderer renderer) { eSubtitleRenderer = renderer; }
+    void  SetSubtitleRenderer(SubtitleRenderer renderer) {
+        eSubtitleRenderer = renderer;
+    }
 
     static bool IsSubtitleRendererRegistered(SubtitleRenderer eSubtitleRenderer);
 
@@ -732,7 +748,15 @@ public:
         ASSERT(fKeepAspectRatio && "Keep Aspect Ratio option have to be enabled if override value is used.");
         return sizeAspectRatio;
     };
-    void SetAspectRatioOverride(const CSize& ar) { sizeAspectRatio = ar; }
+    void SetAspectRatioOverride(const CSize& ar) {
+        sizeAspectRatio = ar;
+    }
+
+    // YoutubeDL settings
+    bool bUseYDL;
+    int iYDLMaxHeight;
+    bool bYDLAudioOnly;
+    CString sYDLCommandLine;
 
 private:
     struct FilterKey {
@@ -779,10 +803,16 @@ public:
 
     void            SaveSettings();
     void            LoadSettings();
-    void            SaveExternalFilters() { if (bInitialized) { SaveExternalFilters(m_filters); } };
+    void            SaveExternalFilters() {
+        if (bInitialized) {
+            SaveExternalFilters(m_filters);
+        }
+    };
     void            UpdateSettings();
 
-    void            SetAsUninitialized() { bInitialized = false; };
+    void            SetAsUninitialized() {
+        bInitialized = false;
+    };
 
     void            GetFav(favtype ft, CAtlList<CString>& sl) const;
     void            SetFav(favtype ft, CAtlList<CString>& sl);

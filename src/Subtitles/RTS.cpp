@@ -61,7 +61,7 @@ CMyFont::CMyFont(const STSStyle& style)
     lf.lfPitchAndFamily = DEFAULT_PITCH | FF_DONTCARE;
 
     if (!CreateFontIndirect(&lf)) {
-        _tcscpy_s(lf.lfFaceName, _T("Arial"));
+        _tcscpy_s(lf.lfFaceName, _T("Tahoma"));
         VERIFY(CreateFontIndirect(&lf));
     }
 
@@ -1215,7 +1215,7 @@ CSubtitle::CSubtitle(RenderingCaches& renderingCaches)
     , m_wrapStyle(0)
     , m_fAnimated(false)
     , m_bIsAnimated(false)
-    , m_relativeTo(STSStyle::VIDEO)
+    , m_relativeTo(STSStyle::AUTO)
     , m_pClipper(nullptr)
     , m_topborder(0)
     , m_bottomborder(0)
